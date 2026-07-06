@@ -18,19 +18,8 @@ async function main() {
       process.exit(0);
     }
 
-    // Run search
+    // Run search (handles --unique and --ignore-case inside searchFiles now)
     let results = await searchFiles(config);
-
-    // Apply uniqueness filter if needed
-    if (config.unique) {
-      // Unique lines across ALL results (by content). Keep first occurrence per content.
-      const seen = new Set();
-      results = results.filter(r => {
-        if (seen.has(r.line)) return false;
-        seen.add(r.line);
-        return true;
-      });
-    }
 
     printResults(results);
 
