@@ -1,0 +1,23 @@
+{
+  "name": "unique-search-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A command-line utility for developers and power users to search text patterns in files and directories with optional uniqueness filtering, regex support, and case-insensitivity, providing clear, reliable, and efficient output.",
+  "bin": {
+    "unique-search": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "start": "node ./bin/cli.js"
+  },
+  "keywords": [
+    "cli",
+    "search",
+    "unique",
+    "tool",
+    "text",
+    "regex"
+  ],
+  "author": "",
+  "license": "MIT"
+}
