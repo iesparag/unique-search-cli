@@ -2,29 +2,47 @@
 
 // Entry point for unique-search-cli CLI tool
 import { parseArgs, getHelpText, getVersionText } from '../lib/config.js';
+import { searchFiles } from '../lib/search.js';
+import { printResults, printError, printInfo } from '../lib/output.js';
 
-function main() {
+async function main() {
   try {
     const config = parseArgs(process.argv);
 
     if (config.help) {
-      console.log(getHelpText());
+      printInfo(getHelpText());
       process.exit(0);
     }
     if (config.version) {
-      console.log(getVersionText());
+      printInfo(getVersionText());
       process.exit(0);
     }
 
-    // For now, just echo the parsed config (until core is implemented)
-    console.log('[unique-search-cli] Parsed config:');
-    console.log(config);
-    // Next: call search logic (not in scope for this issue)
+    // Run search
+    let results = await searchFiles(config);
+
+    // Apply uniqueness filter if needed
+    if (config.unique) {
+      // Unique lines across ALL results (by content). Keep first occurrence per content.
+      const seen = new Set();
+      results = results.filter(r => {
+        if (seen.has(r.line)) return false;
+        seen.add(r.line);
+        return true;
+      });
+    }
+
+    printResults(results);
+
+    process.exit(0);
   } catch (err) {
-    // Print error to stderr, show usage
-    console.error(`Error: ${err.message}`);
+    printError(err && err.message ? err.message : String(err));
     process.exit(1);
   }
 }
 
-main();
+// Detect if run as main (not via import)
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1].endsWith('/cli.js')) {
+  // For correct process exit/status
+  Promise.resolve(main());
+}
