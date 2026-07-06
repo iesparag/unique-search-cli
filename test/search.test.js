@@ -249,3 +249,74 @@ test('unique filter: disables only when --unique is off', async () => {
   const matches3 = await searchFiles({ query: 'red', path: tmpdir, ignoreCase: true, unique: false });
   assert.ok(matches3.length > 1);
 });
+
+// ----- REGEX SEARCH MODE TESTS -----
+
+test('regex search: matches lines matching regex pattern', async () => {
+  const tree = {
+    'log1.txt': 'INFO: All good\nERROR: failed to load\nwarn: low disk\nerr: oops!\n',
+    'log2.txt': 'error 42\nERROR: user lost\nsome other line\n',
+    'misc.txt': 'not relevant\n',
+  };
+  await setupFiles(tree);
+  // Regex for lines starting with ERROR
+  const matches = await searchFiles({ query: '^ERROR:', path: tmpdir, ignoreCase: false, unique: false, pattern: true });
+  // matches log1.txt line 2, log2.txt line 2
+  assert.deepEqual(
+    matches.map(m => ({ file: path.basename(m.file), lineNumber: m.lineNumber, line: m.line })),
+    [
+      { file: 'log1.txt', lineNumber: 2, line: 'ERROR: failed to load' },
+      { file: 'log2.txt', lineNumber: 2, line: 'ERROR: user lost' }
+    ]
+  );
+});
+
+test('regex search: matches with ignoreCase flag', async () => {
+  const tree = {
+    'app.log': 'ERROR: something broke\nerror: minor issue\nWarning: disk\n',
+    'app2.log': 'error: all over\nsilent\n',
+  };
+  await setupFiles(tree);
+  // Match regex /error:/i
+  const matches = await searchFiles({ query: 'error:', path: tmpdir, ignoreCase: true, unique: false, pattern: true });
+  // Matches all "error:" regardless of case
+  assert.deepEqual(
+    matches.map(m => m.line),
+    [
+      'ERROR: something broke',
+      'error: minor issue',
+      'error: all over'
+    ]
+  );
+});
+
+test('regex search: pattern with meta-characters, match numbers', async () => {
+  const tree = {
+    'data.txt': 'item 42\nitem 97\nitem: 004\nfoo bar\n',
+    'x.txt':    'item 5\nsomething else\n',
+  };
+  await setupFiles(tree);
+  // Match lines: /item \d+/
+  const matches = await searchFiles({ query: 'item \\d+', path: tmpdir, ignoreCase: false, unique: false, pattern: true });
+  // Should match lines with a space and digits
+  assert.deepEqual(
+    matches.map(m => m.line),
+    ['item 42', 'item 97', 'item 5']
+  );
+});
+
+test('regex search: pattern that matches no lines returns empty array', async () => {
+  const tree = { 'a.txt': 'nope\nno match\n' };
+  await setupFiles(tree);
+  const matches = await searchFiles({ query: '^ERROR:', path: tmpdir, ignoreCase: false, pattern: true, unique: false });
+  assert.deepEqual(matches, []);
+});
+
+test('throws helpful error for invalid regex search config', async () => {
+  const tree = { 'f.txt': 'hello world' };
+  await setupFiles(tree);
+  // Provide invalid regex pattern
+  await assert.rejects(async () => {
+    await searchFiles({ query: '(**', path: tmpdir, pattern: true });
+  }, /Invalid regular expression/);
+});
