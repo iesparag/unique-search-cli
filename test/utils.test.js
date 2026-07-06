@@ -5,6 +5,7 @@ import test from 'node:test';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { listFiles, readLines } from '../lib/utils.js';
+import { after } from 'node:test';
 
 // In-memory mockfs isn't used, instead use tmp dirs
 const tmpdir = path.join(process.cwd(), 'testutils-tmp');
@@ -43,6 +44,10 @@ async function cleanupTmp() {
   try { await fs.rm(tmpdir, { recursive: true, force: true }); } catch {} 
   await fs.mkdir(tmpdir, { recursive: true });
 }
+
+after(async () => {
+  try { await fs.rm(tmpdir, { recursive: true, force: true }); } catch(e) {}
+});
 
 test('listFiles returns all text files recursively, skips binary & unreadable', async () => {
   await cleanupTmp();
